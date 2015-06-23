@@ -1,0 +1,355 @@
+---
+title: "Diamonds"
+author: "Vijay Sathish"
+date: "Sunday, April 15, 2015"
+output: html_document
+---
+
+## Diamonds dataset  (L3 - 04/15/2015)
+
+```{r}
+library(ggplot2)
+# diamonds is a built-in data frame in R
+data(diamonds)
+summary(diamonds)
+nobs <- length(row.names(diamonds))
+nobs               # 53940; Alternatively, could also use dim(diamonds) to figure this out
+length(names(diamonds))          #10 vars
+str(diamonds)             # shows three ordered variables
+
+qplot(data = diamonds, x = price,
+      color = I('black'), fill = I('#aa88ff'), binwidth = 500) +
+  scale_x_continuous(breaks = seq(1000, 19000, 1000), limits = c(0, 19000))
+
+```
+
+
+### Shape and distribution
+
+```{r}
+# It is positively skewed with long right tail
+# Mean - 3933; Median - 2401
+# Median is a better measure of center or avg. in this case because of the long tail
+
+# Logarthmic converts to bimodal 
+qplot(data = diamonds, x = price, 
+      color = I('black'), fill = I('#aa88ff')) +
+  scale_x_log10()
+
+
+dl500 <- dim(subset(diamonds, !is.na(diamonds$price) & diamonds$price < 500))
+dl500
+
+dl250 <- dim(subset(diamonds, !is.na(diamonds$price) & diamonds$price < 250))
+dl250
+
+dg15k <- dim(subset(diamonds, !is.na(diamonds$price) & diamonds$price >= 15000))
+dg15k
+
+```
+
+### Ascertain price peak by zooming in
+```{r}
+# This obviously depends on bin width (frequency around 12k+ for bin width of 500)
+# freq. ~160 for binwidth of 1 and occurs at $605
+qplot(data = diamonds, x = price,
+      color = I('black'), fill = I('#aa88ff'), binwidth = 1) +
+  scale_x_continuous(breaks = seq(600, 620, 5), limits = c(600, 620))
+#  scale_x_continuous(breaks = seq(1000, 19000, 1000), limits = c(0, 16000))
+# + coord_cartesian(ylim = c(10000, 13000))
+
+# Break out prices by cut
+qplot(data = diamonds, x = price,
+      color = I('black'), fill = I('#aa88ff'), binwidth = 500) +
+  scale_x_continuous(breaks = seq(1000, 19000, 4000), limits = c(0, 19000)) +
+  facet_wrap(~cut, ncol = 2)
+
+
+#Break out prices mathematically to get details
+by(diamonds$price, diamonds$cut, summary)
+# use max if you want absolute accurate value
+by(diamonds$price, diamonds$cut, max)
+
+```
+
+
+### Break free the dimensions using facet_wrap()
+```{r}
+qplot(data = diamonds, x = price,
+      color = I('black'), fill = I('#aa88ff'), binwidth = 500) +
+  scale_x_continuous(breaks = seq(1000, 19000, 4000), limits = c(0, 19000)) +
+  facet_wrap(~cut, ncol = 2, scales = "free_y")
+
+# price per carat faceted by cut (Remember not to use previous binwidth for log10 scaling)
+# Most important reason is to apply transformation to convert to 'normal' like distributions so that linear
+# regression can then be applied on it!
+by(diamonds$price/diamonds$carat, diamonds$cut, summary)
+
+qplot(data = diamonds, x = price/carat,
+      color = I('black'), fill = I('#aa88ff')) + 
+  scale_x_log10() +
+  facet_wrap(~cut, ncol = 2, scales = "free_y")
+
+```
+
+### Explore summaries and pick most interesting factor for boxplot
+
+```{r}
+# Remember that we want variance of price, so that should be y
+by(diamonds$price, diamonds$cut, summary)
+by(diamonds$price, diamonds$clarity, summary)
+by(diamonds$price, diamonds$color, summary)
+
+qplot(data = diamonds, y = price, x = cut,
+      color = I('black'), fill = I('#aa88ff'), geom = "boxplot") +
+  coord_cartesian(ylim = c(0, 7500))
+# Observation - 
+# - We see that the median price for 'ideal'  is ~$1800. On, the other hand, its ~$3200 for fair
+# - This is obviously telling us that cut alone is not a sufficient indicator of diamond price (ex clarity, color, carat etc)
+
+qplot(data = diamonds, y = price, x = clarity,
+      color = I('black'), fill = I('#aa88ff'), geom = "boxplot") +
+  coord_cartesian(ylim = c(0, 7000))
+# Observation -
+# Wider variation in medians (notably that worst clarity has highest median price aka inv. prop)
+
+qplot(data = diamonds, y = price, x = color,
+      color = I('black'), fill = I('#aa88ff'), geom = "boxplot") +
+  coord_cartesian(ylim = c(0, 9000)) + 
+  facet_wrap(~cut, ncol = 3)
+# Observation -
+# See the same inv. relation (remember D is best and J is worst)
+
+# Observation - After normalizing by carat, the price doesn't seem to vary all that much with color
+# Use $color as the fill value to generate box plots with different colors
+qplot(data = diamonds, y = price/carat, x = color,
+      color = I('black'), fill = color, geom = "boxplot") +
+  coord_cartesian(ylim = c(0, 6000))
+
+```
+
+### frequency polygons for carat investigation
+
+```{r}
+# Need to set your bin size really really low (0.001) (how accurate to decimal place we want this to be is not mentioned in question)
+# Based on question's accuracy, one would assume binwidth=0.1 which is not what question expects though
+qplot(data = diamonds, x = carat,
+      geom = "freqpoly", binwidth = 0.1) 
+
+qplot(data = diamonds, x = carat,
+      geom = "freqpoly", binwidth = 0.001) +
+  scale_x_continuous(limits = c(0, 2.5), breaks = seq(0, 2.5, 0.1)) +
+  coord_cartesian(ylim = c(0, 3000))
+
+```
+
+## Diamonds dataset  (L4 - 04/19/2015)
+
+### Create a price vs. x scatter plot
+```{r}
+summary(diamonds$x)
+ggplot(data = diamonds, aes(x = x, y = price)) +
+  geom_point(alpha = 1/20, color = 'red') +
+#  geom_line(stat = median, color = 'black') 
+  scale_x_continuous(breaks = seq(0, 11, 1)) +
+  scale_y_continuous(breaks = seq(0, 20000, 1000))
+
+```
+Response: 
+- From the graph, seems like price is a quadratic function of x
+- Most of the price is concentrated around 7000
+
+### Correlation prices vs. x, y and z
+```{r}
+r.px <- with(data = diamonds, cor.test(x, price))
+r.px
+r.py <- with(data = diamonds, cor.test(y, price))
+r.py
+r.pz <- with(data = diamonds, cor.test(z, price))
+r.pz
+
+```
+
+### Create a price vs. depth scatter plot 
+```{r}
+summary(diamonds$depth)
+ggplot(data = diamonds, aes(x = depth, y = price)) +
+  geom_point(alpha = 1/100, color = 'red') +
+  scale_x_continuous(limits = c(30, 80), breaks = seq(43, 79, 2))
+
+r.pdepth <- with(data = diamonds, cor.test(depth, price))
+r.pdepth
+
+```
+Response: As seen from scatterplot, no relation between depth and price
+
+
+### Price vs. carat scatterplot 
+```{r}
+# exclude top 1% of price and carat
+with(diamonds, quantile(carat, probs = 0.99))
+data.q99 <- subset(diamonds, carat <= quantile(carat, probs = 0.99) &
+                     price <= quantile(price, probs = 0.99))
+ggplot(data = data.q99, aes(x = carat, y = price)) +
+  geom_point(alpha = 1/20, color = 'red')
+
+```
+
+### Price vs. volume scatterplot
+```{r}
+diamonds$volume <- with(diamonds, x*y*z)
+ggplot(data = diamonds, aes(x = volume, y = price)) +
+  geom_point(alpha = 1/20, color = 'red')
+
+
+ggplot(data = diamonds, aes(x = volume, y = price)) +
+  geom_point(alpha = 1/20, color = 'red') +
+  scale_x_log10()
+
+# There are 20 diamonds with a volume 0!
+dim(subset(diamonds, volume == 0))  
+
+```
+Response: 
+- Based on graph, there seem to be extreme outliers in volume
+- Majority of volume is bounded by 500, so a log scale will probably give a better picture
+- Scaling x axis logarthmically indicates that price is exponentially related to volume
+
+### Correlation b/w price and volume
+```{r}
+r.vol <- with(subset(diamonds, volume != 0 & volume <= 800), cor.test(volume, price))
+r.vol
+
+
+```
+
+### Insert linear model using geom_smooth() for previous plot excluding outliers as before
+
+```{r}
+data.sub <- subset(diamonds, volume != 0 & volume <= 800)
+ggplot(data = data.sub, aes(x = volume, y = price)) +
+  geom_point(alpha = 1/20, color = 'green') +
+  geom_smooth(method = 'lm', color = 'blue') +
+  geom_smooth(method = 'lm', formula = y ~ poly(x, 2), color = 'black') +
+  geom_smooth(method = 'lm', formula = y ~ poly(x, 3), color = 'black', linetype = 2) +
+  coord_cartesian(xlim = c(0, 400), ylim = c(0, 20000))
+
+
+```
+Response: 
+- We knew linear model doesn't work well
+- scaling x logarithmically showed us this relation already
+- We see that cubic fits much better of the three
+
+
+### Diamonds by clarity (Conditional Means) using dplyr
+
+```{r}
+# Name the data frame diamondsByClarity
+
+# The data frame should contain the following
+# variables in this order.
+#       (1) mean_price
+#       (2) median_price
+#       (3) min_price
+#       (4) max_price
+#       (5) n
+
+library('dplyr')
+diamondsByClarity <- diamonds %>%
+  group_by(clarity) %>%
+  summarise(mean_price = mean(as.numeric(price)),
+            median_price = median(as.numeric(price)),
+            min_price = min(price),
+            max_price = max(price),
+            n = n()) %>%
+  arrange(clarity)
+
+diamondsByClarity
+
+```
+
+### Conditional Means by clarity and color
+```{r}
+diamonds_by_clarity <- group_by(diamonds, clarity)
+diamonds_mp_by_clarity <- summarise(diamonds_by_clarity, mean_price = mean(price))
+
+diamonds_by_color <- group_by(diamonds, color)
+diamonds_mp_by_color <- summarise(diamonds_by_color, mean_price = mean(price))
+
+# Plot bar graphs
+library('gridExtra')
+p1 <- ggplot(data = diamonds_mp_by_clarity, aes(x = clarity, y = mean_price)) +
+  geom_bar(stat = 'identity')
+p2 <- ggplot(data = diamonds_mp_by_color, aes(x = color, y = mean_price)) +
+  geom_bar(stat = 'identity')
+grid.arrange(p1, p2, ncol = 1)
+
+```
+Response: 
+- NOTE: The stat='identity' was required for it to work, otherwise we don't see anything
+- With color & clarity, we see the surprising inverse relation with price
+- We had earlier noticed this in boxplots as well while faceting by color and clarity separately
+
+## Diamonds dataset  (L5 - 04/20/2015)
+
+### Histogram
+```{r}
+# Create a histogram of diamond prices. Facet the histogram by diamond color
+# and use cut to color the histogram bars
+
+
+qplot(data = diamonds, x = price, color = 'black', fill = cut, binwidth = 500) +
+  facet_wrap(~color, scales = "free_y") 
+
+```
+
+### Scatterplot
+```{r}
+# Create a scatterplot of diamond price vs. table and color the points by the cut of
+# the diamond.
+
+ggplot(data = diamonds, aes(x = table, y = price)) +
+  geom_point(aes(color = cut), alpha = 1/5)
+
+```
+
+#### Response: 
+Table range for premium cut -> 58-62
+Table range for ideal cut -> 53-57
+
+```{r Diamond price vs volume}
+# Create a scatterplot of diamond price vs. volume and color the points by
+# the clarity of diamonds. Use scale on the y-axis to take the log10 of price. You should also
+# omit the top 1% of diamond volumes from the plot.
+
+diamonds$volume <- with(diamonds, x * y * z)
+ggplot(data = subset(diamonds, volume <= quantile(x = diamonds$volume, p = 0.99)),
+       aes(x = volume, y = log10(price))) +
+  geom_point(aes(color = clarity), alpha = 1/1) + 
+  scale_color_brewer(type = 'div')
+```
+
+```{r}
+# Create a scatter plot of the price/carat ratio of diamonds. The variable x should be
+# assigned to cut. The points should be colored by diamond color, and the plot should be
+# faceted by clarity.
+
+ggplot(data = diamonds, aes(x = cut, y = price/carat)) +
+  geom_jitter(aes(color = color), alpha = 1/5) +
+  facet_wrap(~clarity)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

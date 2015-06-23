@@ -1,0 +1,94 @@
+---
+title: "FbBirthdays"
+author: "Vijay Sathish"
+date: "Friday, April 17, 2015"
+output: html_document
+---
+
+### Distribution of your friends' birth months and days.
+**********************************************************************
+How many people share your birthday? Do you know them?
+(Reserve time with them or save money to buy them a gift!)
+Which month contains the most number of birthdays?
+How many birthdays are in each month?
+Which day of the year has the most number of birthdays?
+Do you have at least 365 friends that have birthdays on everyday
+of the year?
+**********************************************************************
+
+You will need to do some data munging and additional research to
+complete this task. This task won't be easy, and you may encounter some
+unexpected challenges along the way. We hope you learn a lot from it though.
+
+You can expect to spend 30 min or more on this task depending if you
+use the provided data or obtain your personal data. We also encourage you
+to use the lubridate package for working with dates. Read over the documentation
+in RStudio and search for examples online if you need help.
+
+You'll need to export your Facebooks friends' birthdays to a csv file.
+You may need to create a calendar of your Facebook friends? birthdays
+in a program like Outlook or Gmail and then export the calendar as a
+csv file.
+
+Once you load the data into R Studio, you can use the strptime() function
+to extract the birth months and birth days. We recommend looking up the
+documentation for the function and finding examples online.
+
+### Start
+Notes: Working with pre-processed list from instructor notes
+- Didn't have to go through all the transformations to get to CSV
+- No names or year data here, only day and month
+
+```{r Extracting csv to dataframe}
+# read.csv() and read.table() achieve same results
+raw <- read.csv("D:/EDA/R_wd/L3/birthdaysExample.csv", as.is = T, header = T)
+str(raw)
+head(raw)
+
+dat.in <- read.table("D:/EDA/R_wd/L3/birthdaysExample.csv", header = T, as.is = T)
+str(dat.in)
+head(dat.in)
+
+# Use lubridate and this actually becomes a breeze
+# http://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html
+library('lubridate')
+dat.gd <- mdy(dat.in$dates)
+str(dat.gd)
+head(dat.gd)
+
+# Finally extract out the month, date and years and we are ready to go
+dat.df <- data.frame(Value = dat.gd, Year = year(dat.gd), Month = month(dat.gd), Day = day(dat.gd))
+str(dat.df)
+head(dat.df)
+```
+Response: Note that read.csv() or read.table() will both work, but important to set as.is = T to prevent from getting it converted into a factors and retain as chr
+
+### Lets see if we can use separate() from tidyr to achieve the same thing!
+```{r}
+data.untidy <- read.table("D:/EDA/R_wd/L3/birthdaysExample.csv", header = T, as.is = T)
+str(data.untidy)
+library(tidyr)
+data.tidy <- separate(data = data.untidy, col = dates, into = c("Month", "Date", "Year"), sep = "/")
+# Conversion to integer from character
+data.tidy$Month <- as.integer(data.tidy$Month) 
+data.tidy$Date <- as.integer(data.tidy$Date)
+data.tidy$Year <- as.integer(data.tidy$Year)
+str(data.tidy)
+```
+Notes: In fact, we can! And this one is actually more intuitive to me than using lubridate()
+
+### Some very basic plots
+```{r Basic plots}
+library(ggplot2)
+
+qplot(data = dat.df, x = Month,
+      color = I('black'), fill = I('#aa88ff'), binwidth = 1, 
+      xlab = 'month of the year', ylab = '#birthdays in the month') +
+  scale_x_discrete(breaks = c(1:12))
+
+qplot(data = dat.df, x = Day,
+      color = I('black'), fill = I('#aa88ff'), binwidth = 1, 
+      xlab = 'Day of the year', ylab = '#birthdays on the day') +
+  scale_x_discrete(breaks = seq(1, 31, 2))
+
+```

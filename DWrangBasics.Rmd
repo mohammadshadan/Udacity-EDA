@@ -1,0 +1,119 @@
+---
+title: "Data Wrangling Basics"
+author: "Vijay Sathish"
+date: "Friday, April 17, 2015"
+output: html_document
+---
+
+### Source of info
+Notes:
+https://s3.amazonaws.com/udacity-hosted-downloads/ud651/DataWranglingWithR.pdf
+Data from: http://www.gapminder.org/data/
+http://forums.udacity.com/questions/100177970/weekly-working-hours#ud651
+Search for 'arms exp' in search bar and download that.
+This is very important stuff to convert xlsx forms to data frames
+
+### .xlsx to .csv - After downloading spreadsheet, save into .csv format 
+Notes: Only the first tab 'data' will get saved, but thats what we really want. 
+
+### Open up spreadsheet
+Notes: When you open it up, you notice that the first row has all the column labels from the xlsx sheet
+Hence, when you read in to R, set the header to true. We also set row.names = 1 because first column has country names 
+and should get transformed to row names
+
+```{r}
+armsRaw <- read.csv("D:/EDA/R_wd/L3/arms_exports.csv", header = T, row.names = 1, check.names = F)
+names(armsRaw)
+head(armsRaw)
+dim(armsRaw)
+
+```
+
+### Transform using tidyr
+Notes:
+Use gather(<rawdata>, '<col1>', '<col2>', [colRangeLow:colRangeHigh])
+Notice that we have 52 columns (1960-2011) and 213 observations, one per country
+
+```{r}
+# Transform col1 to col2 for given range
+library(tidyr)
+armsReshape <- gather(armsRaw, 'year', 'deal_size', 1:52)
+head(armsReshape)
+
+```
+Response: Notice the column names now
+
+### Almost what we wanted...
+Notes: But we managed to not tranform the row names which had country. Trick is to make that a column in original
+read by not setting row.names = 1
+
+```{r}
+armsRaw2 <- read.csv("D:/EDA/R_wd/L3/arms_exports.csv", header = T, check.names = F)
+names(armsRaw2)
+head(armsRaw2)
+dim(armsRaw2)
+
+
+```
+### Reshape
+Notes: Remember that first column is as we want it, so remember to exclude from transform
+
+```{r}
+armsReshape2 <- gather(armsRaw2, 'year', 'deal$', 2:53)
+head(armsReshape2)
+names(armsReshape2)
+dim(armsReshape2)
+
+```
+
+### Rename columns and get rid of NAs
+```{r}
+names(armsReshape2) <- c('country', 'year', 'deal_size')
+armsFinal <- subset(armsReshape2, !is.na(deal_size))
+head(armsFinal)
+dim(armsFinal)
+names(armsFinal)
+
+```
+
+***
+
+### Ready to plot
+
+```{r Deals per year}
+str(armsFinal)
+library(ggplot2)
+qplot(data = armsFinal, x = year,
+      color = I('black'), fill = I('#aa88ff'),
+      xlab = 'year', ylab = '#arms deals per year') +
+  scale_x_discrete(breaks = seq(1960, 2011, 5))
+
+```
+Response: Both country and year are factors while deal size is not
+
+```{r Median deals per year}
+# Convert deal size to logarithmic to better view box plots
+qplot(data = armsFinal, y = deal_size, x = year, 
+      geom = 'boxplot') +
+#  coord_cartesian(ylim = c(0, 500000000)) +
+  scale_y_log10()
+
+```
+Response: Wide variation in deal sizes over the years. However, we don't see the trend in median increasing deal sizes, so safe to conclude that its somewhat constant
+
+```{r Deals by a country}
+# Too many to view in one graph
+qplot(data = armsFinal, x = country,
+      color = I('black'), fill = I('#aa88ff'),
+      xlab = 'country', ylab = '#arms deals per country')  
+```
+
+### This would have taken a lot of time! But this really looks like in-depth analysis
+Notes: http://forums.udacity.com/questions/100164265/exploring-arms-exports#ud651
+Probably would be good to first filter out the top 10 exporters and then analyze only those
+What I learned from this exercise is that we basically have too many factors in countries to do useful analysis on full data set
+
+
+
+
+
