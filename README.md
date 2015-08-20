@@ -1,4 +1,4 @@
-# Udacity-EDA
+# Udacity - Exploratory Data Analysis with R
 Udacity Exploratory Data Analysis course files
 
 The repository contains all the exercise code related to the Exploratory Data Analysis course designed by Facebook for Udacity. 
